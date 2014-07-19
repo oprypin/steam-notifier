@@ -1,0 +1,3 @@
+[submodule "universal-qt"]
+	path = universal-qt
+	url = git://github.com/BlaXpirit/universal-qt.git
