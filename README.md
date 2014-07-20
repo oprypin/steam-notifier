@@ -2,6 +2,8 @@
 
 This program works by simulating a web browser and downloading http://steamcommunity.com/my/commentnotifications every 30 seconds. The page is then parsed to get the information about new comments you got in Steam Community as well as other events.
 
+([Screnshots](http://imgur.com/a/nI9hs))
+
 In order to do this, *Steam Notifier* will need you to login to Steam Community in the browser window that will be shown to you. Of course, entering your password in some suspicious looking window can be a risk. But this program does not store your login data in any way. And you don't have to just believe these words. The program's source code is available in its entirety.
 
 The initial setup ends successfully when you reach your comment notifications page, and if everything goes well, you should be redirected there automatically after you log in.
