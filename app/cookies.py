@@ -1,4 +1,4 @@
-# Copyright (C) 2014 Oleh Prypin <blaxpirit@gmail.com>
+# Copyright (C) 2014-2015 Oleh Prypin <blaxpirit@gmail.com>
 # 
 # This file is part of Steam Notifier.
 # 
@@ -18,6 +18,7 @@
 
 from qt.network import QNetworkCookieJar, QNetworkCookie
 
+
 class PersistentCookieJar(QNetworkCookieJar):
     def __init__(self, filename):
         QNetworkCookieJar.__init__(self)
@@ -30,8 +31,11 @@ class PersistentCookieJar(QNetworkCookieJar):
     
     def setCookiesFromUrl(self, cookies, url):
         result = QNetworkCookieJar.setCookiesFromUrl(self, cookies, url)
-        with open(self.filename, 'wb') as f:
+        self.save_to_file(self.filename)
+        return result
+    
+    def save_to_file(self, filename):
+        with open(filename, 'wb') as f:
             for cookie in self.allCookies():
                 f.write(cookie.toRawForm().data())
                 f.write(b'\n\n')
-        return result

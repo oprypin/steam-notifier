@@ -1,4 +1,4 @@
-# Copyright (C) 2014 Oleh Prypin <blaxpirit@gmail.com>
+# Copyright (C) 2014-2015 Oleh Prypin <blaxpirit@gmail.com>
 # 
 # This file is part of Steam Notifier.
 # 
@@ -44,10 +44,10 @@ def found_login_url(url):
         global page, view
         if found_commentnotifications_url(page.mainFrame().url()):
             view.close()
-            
+    
     qu(page, load_progress=load_progress, load_finished=load_finished)
 
-    view = qu(QWebView, page=page)
+    view = qu(QWebView, page=page, window_title="Steam Notifier")
     page.mainFrame().load(url)
     view.show()
     return True
@@ -70,7 +70,7 @@ def finished(reply):
     elif redirect_url and found_login_url(redirect_url):
         pass
     elif redirect_url:
-        send_request(redirect_url)
+        request(redirect_url, finished)
     elif reply.url().path().rstrip('/').endswith('/commentnotifications'):
         data = reply.readAll().data()
         _callback(parse_commentnotifications(data))
@@ -78,24 +78,53 @@ def finished(reply):
         print("Don't know what to do with URL", reply.url().toString())
 
 
-def send_request(url, callback=finished):
+
+def _do_request(url, callback=None):
+    print(url)
+    if isinstance(url, tuple):
+        url, data = url
+    else:
+        data = None
     global reply
     request = QNetworkRequest(QUrl(url))
-    reply = nam.get(request)
-    reply.finished.connect(lambda: callback(reply))
+    if data is not None:
+        reply = nam.post(request, data)
+    else:
+        reply = nam.get(request)
+    if callback is not None:
+        reply.finished.connect(lambda: callback(reply))
+
+request_queue = None
+
+def request(url, callback=None):
+    global request_queue
+    if request_queue is None:
+        request_queue = [(url, callback)]
+        _next_request()
+        request_timer.start()
+    else:
+        request_queue.append((url, callback))
+
+def _next_request():
+    global request_queue
+    if not request_queue:
+        request_queue = None
+    else:
+        _do_request(*request_queue.pop(0))
+
+request_timer = qu(QTimer, interval=1000*2, timeout=_next_request)
 
 
 def update(reset_timer=True):
-    send_request(user_url+'?l=english')
+    request(user_url+'?l=english', finished)
 
     if reset_timer:
         timer.start()
 
+timer = qu(QTimer, interval=1000*30, timeout=lambda: update(False))
+
 def start():
-    global timer
-    timer = qu(QTimer, interval=1000*30, timeout=lambda: update(False))
-    timer.start()
-    update(False)
+    update()
 
 def run(result_callback=lambda: None):
     global _callback
@@ -105,6 +134,6 @@ def run(result_callback=lambda: None):
         with open('settings/user.txt') as f:
             user_url = f.read()
     except OSError:
-        send_request('http://steamcommunity.com/my/commentnotifications')
+        request('http://steamcommunity.com/my/commentnotifications', finished)
     else:
         start()

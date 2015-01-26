@@ -1,4 +1,4 @@
-# Copyright (C) 2014 Oleh Prypin <blaxpirit@gmail.com>
+# Copyright (C) 2014-2015 Oleh Prypin <blaxpirit@gmail.com>
 # 
 # This file is part of Steam Notifier.
 # 
@@ -17,52 +17,100 @@
 
 
 import collections
+import re
+import json
 
 import lxml.html
 import cssselect
 
 
 def parse_commentnotifications(content):
+    [sessionid] = re.findall(b'''g_sessionID *= *["'](.+?)["']''', content)
+    [comment_info] = re.findall(b'''InitCommentNotifications\( *(\[.*?\]),''', content)
+    comment_info = json.loads(comment_info.decode('utf-8'))
+    
     root = lxml.html.fromstring(content)
 
-    counts = AttributeOrderedDict()
-    dropdown, = root.cssselect('#header_notification_dropdown')
+    categories = AttributeDict()
+    [dropdown] = root.cssselect('#header_notification_dropdown')
     for cls in 'comments items invites gifts offlinemessages tradeoffers'.split():
-        d = AttributeDict(count=0, kind=cls)
-        counts[cls] = d
+        category = AttributeDict(count=0)
+        categories[cls] = category
         try:
-            el, = dropdown.cssselect('.header_notification_{}'.format(cls))
+            [el] = dropdown.cssselect('.header_notification_{}'.format(cls))
         except ValueError:
             continue
-        d['text'] = el.text_content().strip()
-        d['count'] = int(d['text'].split()[0])
-        d['link'] = el.get('href')
-    if not counts['offlinemessages']['link'].startswith('http://'):
-        counts['offlinemessages']['link'] = 'http://steamcommunity.com/chat'
+        category.text = el.text_content().strip()
+        category.count = int(category.text.split()[0])
+        category.url = el.get('href')
+    if not categories.offlinemessages.url.startswith('http'):
+        categories.offlinemessages.url = 'https://steamcommunity.com/chat'
+    if not categories.tradeoffers.get('url'):
+        categories.tradeoffers.url = 'http://steamcommunity.com/my/tradeoffers/'
 
     comments = []
-    block, = root.cssselect('#profileBlock')
-    for notification in block.cssselect('.commentnotification.unread'):
-        d = AttributeDict()
+    [block] = root.cssselect('#profileBlock')
+    for notification, info in zip(block.cssselect('.commentnotification'), comment_info):
+        comment = AttributeDict()
+
+        kind = info['type'].lower().strip('_')
+        comment.kind = {'forumtopic': 'discussion', 'userreceivednewgame': 'newgame', 'userstatuspublished': 'status'}.get(kind, kind)
+
         for cls in 'newposts date title description'.split():
-            el, = notification.cssselect('.commentnotification_{}'.format(cls))
-            d[cls] = el.text_content().strip()
-        d['newposts'] = int(d['newposts'].lstrip('+'))
-        a, = notification.cssselect('a')
-        d['link'] = a.get('href')
-        comments.append(d)
+            [el] = notification.cssselect('.commentnotification_{}'.format(cls))
+            comment[cls] = el.text_content().strip()
+
+        if 'unread' not in notification.get('class').split():
+            continue
+        
+        comment.newposts = int(comment.newposts.lstrip('+') or 0)
+
+        [a] = notification.cssselect('a')
+        comment.url = a.get('href').rstrip('#')
+        
+        comment.owner = bool(info['is_owner'])
+        comment.subscribed = bool(info['is_subscribed'])
+
+
+        if comment.kind == 'deleted':
+            m = re.match(r'''^RemoveCommentNotification\( *this, *'(.+?)', *'(.+?)', *'(.+?)'(?:, *'(.+?)' *)?\);?$''', notification.get('onclick'))
+            url = 'http://steamcommunity.com/comment/{}/removenotification/{}/{}'
+            if m.group(4):
+                url += '?feature2={}'
+            comment.read_url = (url.format(*m.groups()), b'sessionid='+sessionid)
+        
+        if comment.kind == 'discussion':
+            m = re.match(r'^A (new) discussion in (.+)$', comment.description) or re.match(r'^()In (.+)$', comment.description)
+            comment.new = bool(m.group(1))
+            comment.forum = m.group(2)
+        #if comment.description == "Your profile":
+            #comment.kind = 'profile'
+        #if '/friendactivitydetail/' in comment.url or '/status/' in comment.url:
+            #comment.kind = 'friendactivity'
+        #if '/sharedfiles/' in comment.url:
+            #comment.kind = 'content'
+
+        comments.append(comment)
     
-    return counts, comments
+    return categories, comments
 
 
-class AttributeMixin:
+
+
+class AttributeDict(collections.OrderedDict):
     def __getattr__(self, name):
         if name.startswith('_'):
-            return object.__getattr__(self, name)
+            return collections.OrderedDict.__getattr__(self, name)
         return self[name]
-
-class AttributeDict(dict, AttributeMixin):
-    pass
-
-class AttributeOrderedDict(collections.OrderedDict, AttributeMixin):
-    pass
+    
+    def __setattr__(self, name, value):
+        if name.startswith('_'):
+            return object.__setattr__(self, name, value)
+        self[name] = value
+    
+    def __repr__(self):
+        result = []
+        for k, v in self.items():
+            v = ('\n   '+' '*len(k)).join(repr(v).strip().splitlines())
+            result.append('{}: {}'.format(k, v))
+        return '\n{'+',\n '.join(result)+'}'
