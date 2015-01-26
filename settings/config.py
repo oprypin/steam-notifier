@@ -32,7 +32,7 @@ def comments(info, comments):
             # https://docs.python.org/3/library/re.html
             matches = re.findall(r'''
                 \[H\] | \[W\]   # [H] or [W]
-               |\b(H|W|coupon|trading|trade|card|cards|discount|offer|gems|key)\b   # whole words
+               |\b(H|W|coupons?|trading|trade|cards?|discount|offers?|gems|key)\b   # whole words
                |\b([1-9][05]|33|66)%   # coupons
             ''', comment.title, re.IGNORECASE|re.VERBOSE)
             if len(matches) >= 2:    # if at least 2 matches,

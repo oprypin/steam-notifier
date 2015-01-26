@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
-# Copyright (C) 2014 Oleh Prypin <blaxpirit@gmail.com>
+# Copyright (C) 2014-2015 Oleh Prypin <blaxpirit@gmail.com>
 # 
 # This file is part of Steam Notifier.
 # 
@@ -31,4 +31,3 @@ def my_excepthook(type, value, traceback):
 sys.excepthook = my_excepthook
 
 import app
-

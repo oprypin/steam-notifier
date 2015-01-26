@@ -16,7 +16,7 @@
 # along with Steam Notifier.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__version__ = '0.2'
+__version__ = '0.2.1'
 
 import sys
 import os
@@ -262,8 +262,6 @@ def process_data(data):
     for c in comments:
         c.text = '{} ({})'.format(c.title, c.newposts)
         c.tooltip = '{}\n({})'.format(c.description, c.date)
-    print(categories)
-    print(comments)
     api.go(categories, comments, notify)
     update()
 
