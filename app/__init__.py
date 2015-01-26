@@ -268,7 +268,7 @@ def process_data(data):
 try:
     with open('settings/user.txt') as f:
         pass
-except OSError:
+except IOError:
     about()
     information()
 

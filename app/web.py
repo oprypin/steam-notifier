@@ -133,7 +133,7 @@ def run(result_callback=lambda: None):
         global user_url
         with open('settings/user.txt') as f:
             user_url = f.read()
-    except OSError:
+    except IOError:
         request('http://steamcommunity.com/my/commentnotifications', finished)
     else:
         start()
