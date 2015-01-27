@@ -10,7 +10,7 @@ The initial setup ends successfully when you reach your comment notifications pa
 
 Afterwards, *Steam Notifier* will consist only of the system tray (notification area) icon with the number of new events (if any) on it, very similarly to the one you get inside Steam's main window. Right-clicking it will give you a menu with some self-explanatory options (including *Quit*), and also individual event groups. Clicking on the events in the menu will open the corresponding part of Steam Community website in your default browser. Double clicking the icon will select the first available event from that menu and send you to it.
 
-Make sure to check out <settings/config.py> to configure filtering, notification popups and much more. The application must be restarted to reload the configuration.
+Make sure to check out [settings/config.py](settings/config.py) to configure filtering, notification popups and much more. The application must be restarted to reload the configuration.
 
 
 ## Installation
