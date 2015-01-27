@@ -16,7 +16,7 @@
 # along with Steam Notifier.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__version__ = '0.2.3'
+__version__ = '0.2.4'
 
 import sys
 import os
@@ -75,10 +75,11 @@ def about():
 def information():
     with open('README.md') as f:
         s = f.read()
-    s = s.split('\n#')[0]
+    s = s.split('\n\n\n')[2].split('\n\n', 1)[1]
     s = re.sub(r'<(.+?)>', r'<a href="\1">\1</a>', s)
+    s = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', s)
     s = re.sub(r'\*(.+?)\*', r'<i>\1</i>', s)
-    s = '<p>'.join(p for p in s.split('\n\n')[1:] if "![Screenshot]" not in p)
+    s = s.replace('\n\n', '<p>')
     QMessageBox.information(None, "Information", "<p>Welcome to <i>Steam Notifier</i>.<p>"+s)
 
 

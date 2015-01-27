@@ -23,8 +23,9 @@ def comments(info, comments):
         
         if comment.kind == 'deleted':
             comment.mark_read()  # ignore and mark as read the deleted items
+            continue  # move on to the next comment
         
-        elif comment.kind == 'discussion':
+        if comment.kind == 'discussion':
             # avoid separation of new discussions and followups (no "A new discussion in...")
             comment.group = comment.forum
             # but append a star to new discussions
@@ -40,13 +41,13 @@ def comments(info, comments):
             ''', comment.title, re.IGNORECASE|re.VERBOSE)
             if len(matches) >= 2:    # if at least 2 matches,
                 comment.mark_read()  # ignore and mark as read
+                continue
             elif len(matches) == 1:  # if just 1 match,
                 comment.ignore()     # don't show it in Steam Notifier, but leave it
+                continue
 
         # notify about your own items or replies on others' profiles, statuses, new games
-        elif comment.owner:
-            comment.notify()
-        elif comment.kind in ['profile', 'status', 'newgame']:
+        if comment.owner or comment.kind in ['profile', 'status', 'newgame']:
             comment.notify()
 
 

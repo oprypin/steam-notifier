@@ -1,8 +1,29 @@
 # Steam Notifier
 
-This program works by simulating a web browser and downloading <http://steamcommunity.com/my/commentnotifications> every 30 seconds. The page is then parsed to get the information about new comments you got in Steam Community as well as other events.
+
+## Introduction
+
+*Steam Notifier* is a cross-platform application that shows [notifications](http://steamcommunity.com/my/commentnotifications/) from Steam Community in a system tray icon.
 
 [![Screenshot](http://i.imgur.com/T5Q9XEB.png)](http://imgur.com/a/nI9hs)
+
+Its obvious advantage is that you don't need to activate Steam's main window to check for notifications.
+
+It is highly configurable, and allows you to react to notifications differently depending on filters:
+
+- Ignore  
+  (don't show in Steam Notifier, but leave the notification in Steam)
+- Mark as read  
+  (this is pre-configured for unwanted trading messages and *"This item has been deleted"*)
+- Show a popup notification  
+  (pre-configured to notify about replies to your own items, replies on others' profiles or statuses, and offline messages)
+
+[The configuration file](settings/config.py) is actually a script in Python programming language, but it is quite easy to understand. This takes the configurability to a whole new level (see the [wiki](https://github.com/BlaXpirit/steam-notifier/wiki) to get some ideas).
+
+
+## Instructions
+
+This program works by simulating a web browser and downloading <http://steamcommunity.com/my/commentnotifications> every 30 seconds. The page is then parsed to get the information about new comments you got in Steam Community as well as other events.
 
 In order to do this, *Steam Notifier* will need you to login to Steam Community in the browser window that will be shown to you. Of course, entering your password in some suspicious looking window can be a risk. But this program does not store your login data in any way. The program's source code is available in its entirety.
 
