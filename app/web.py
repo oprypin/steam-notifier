@@ -79,22 +79,6 @@ def finished(reply):
 
 
 
-def _do_request(url, callback=None):
-    print(url)
-    if isinstance(url, tuple):
-        url, data = url
-    else:
-        data = None
-    global reply
-    request = QNetworkRequest(QUrl(url))
-    if data is not None:
-        reply = nam.post(request, data)
-    else:
-        reply = nam.get(request)
-    if callback is not None:
-        reply.finished.connect(lambda: callback(reply))
-
-request_queue = None
 
 def request(url, callback=None):
     global request_queue
@@ -112,7 +96,24 @@ def _next_request():
     else:
         _do_request(*request_queue.pop(0))
 
+def _do_request(url, callback=None):
+    print(url)
+    if isinstance(url, tuple):
+        url, data = url
+    else:
+        data = None
+    global reply
+    request = QNetworkRequest(QUrl(url))
+    if data is not None:
+        reply = nam.post(request, data)
+    else:
+        reply = nam.get(request)
+    if callback is not None:
+        reply.finished.connect(lambda: callback(reply))
+
+request_queue = None
 request_timer = qu(QTimer, interval=1000*2, timeout=_next_request)
+
 
 
 def update(reset_timer=True):
@@ -126,11 +127,10 @@ timer = qu(QTimer, interval=1000*30, timeout=lambda: update(False))
 def start():
     update()
 
-def run(result_callback=lambda: None):
-    global _callback
+def run(result_callback):
+    global _callback, user_url
     _callback = result_callback
     try:
-        global user_url
         with open('settings/user.txt') as f:
             user_url = f.read()
     except IOError:

@@ -14,26 +14,29 @@ open_urls_in = 'default'  # Your system's default browser
 
 def comments(info, comments):
     # Uncomment to see the data structures for yourself:
-    # with open('comments.txt') as f:
+    # with open('comments.txt', 'w') as f:
     #    f.write(str(comments))
     
     for comment in comments:
         # show comments grouped by description
-        comment.group = comment.description  # remove this line to disable grouping
+        comment.group = comment.description
         
         if comment.kind == 'deleted':
             comment.mark_read()  # ignore and mark as read the deleted items
         
         elif comment.kind == 'discussion':
-            # avoid separation of new discussions and followups (different description)
+            # avoid separation of new discussions and followups (no "A new discussion in...")
             comment.group = comment.forum
+            # but append a star to new discussions
+            if comment.new:
+                comment.text = comment.text+" *"
             
             # use regular expressions to find unwanted discussions (mostly trading)
             # https://docs.python.org/3/library/re.html
             matches = re.findall(r'''
-                \[H\] | \[W\]   # [H] or [W]
-               |\b(H|W|coupons?|trading|trade|cards?|discount|offers?|gems|key)\b   # whole words
-               |\b([1-9][05]|33|66)%   # coupons
+                \b(coupons?|trading|trade|cards?|discount|offers?|gems|keys?)\b   # whole words; optional s
+              | \[H\] | \[W\] | \b(H|W)\b   # [H] or [W]
+              | \b([1-9][05]|33|66) ?%   # coupons
             ''', comment.title, re.IGNORECASE|re.VERBOSE)
             if len(matches) >= 2:    # if at least 2 matches,
                 comment.mark_read()  # ignore and mark as read

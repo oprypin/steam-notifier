@@ -19,15 +19,31 @@
 
 
 import sys
+import os
+import os.path
+
+
+try:
+    script_name = __FILE__
+except NameError:
+    script_name = sys.argv[0]
+os.chdir(os.path.dirname(os.path.realpath(os.path.abspath(script_name))))
+
+
 sys.path.insert(0, 'universal-qt')
+
 
 from traceback import print_exception
 
 def my_excepthook(type, value, traceback):
     sys.__excepthook__(type, value, traceback)
-    with open('error_log.txt', 'a') as f:
-        print_exception(type, value, traceback, file=f)
+    try:
+        with open('error_log.txt', 'a') as f:
+            print_exception(type, value, traceback, file=f)
+    except Exception:
+        pass
 
 sys.excepthook = my_excepthook
+
 
 import app

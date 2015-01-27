@@ -25,7 +25,10 @@ class PersistentCookieJar(QNetworkCookieJar):
         self.filename = filename
         try:
             with open(self.filename, 'rb') as f:
-                self.setAllCookies([c for data in f.read().split(b'\n\n') for c in QNetworkCookie.parseCookies(data)])
+                self.setAllCookies([cookie
+                    for data in f.read().split(b'\n\n')
+                    for cookie in QNetworkCookie.parseCookies(data)
+                ])
         except IOError:
             pass
     

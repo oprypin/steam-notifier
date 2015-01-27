@@ -17,76 +17,91 @@
 
 
 import imp
+import collections
 
 from . import web
 
 
-config = imp.load_source('config', 'settings/config.py')
+def show_exception():
+    from traceback import format_exc
+    from qt.widgets import QMessageBox
+    
+    lines = format_exc().replace('  ', '    ').splitlines()
+    try:
+        index = next(i for i in range(len(lines)) if '"settings/config.py"' in lines[i])
+        lines = lines[index:]
+    except StopIteration: pass
+    QMessageBox.critical(None, "Steam Notifier", "Error traceback:\n"+'\n'.join(lines))
+
+
+try:
+    config = imp.load_source('config', 'settings/config.py')
+except Exception as e:
+    show_exception()
+    raise
+
 
 web.timer.setInterval(round(config.interval*1000))
 
 
-notified_comments = set()
+comments_notified = set()
 categories_notified = {}
 
 
-def go(categories, comments, notify_f):
-    global should_notify
-    should_notify = False
-    
+def transform(categories, comments, notify_f):
     for kind, category in categories.items():
         if not category.count:
             continue
         
         def ignore(category=category):
-            category.ignored = True
-        def notify(category=category):
+            category.to_ignore = True
+        def notify(category=category, kind=kind):
             n = categories_notified.get(kind, 0)
             if category.count != n:
                 if category.count > n:
-                    global should_notify
-                    should_notify = True
-                    category.notify = True
+                    category.to_notify = True
                 categories_notified[kind] = category.count
         object.__setattr__(category, 'ignore', ignore)
         object.__setattr__(category, 'notify', notify)
+        
+        if kind == 'comments':
+            for comment in comments:
+                def ignore(comment=comment):
+                    comment.to_ignore = True
+                def mark_read(comment=comment):
+                    ignore()
+                    web.request(comment.get('read_url', comment.url))
+                def notify(comment=comment, category=category):
+                    if comment.url not in comments_notified:
+                        category.to_notify = True
+                        comment.to_notify = True
+                        comments_notified.add(comment.url)
 
+                object.__setattr__(comment, 'ignore', ignore)
+                object.__setattr__(comment, 'mark_read', mark_read)
+                object.__setattr__(comment, 'notify', notify)
+
+            args = (category, comments)
+        else:
+            args = (category)
         
         try:
             f = getattr(config, kind)
-        except AttributeError:
-            config.other(kind, category)
-        else:
-            if kind == 'comments':
-                for comment in comments:
-                    def ignore(comment=comment):
-                        comment.ignored = True
-                    def mark_read(comment=comment):
-                        ignore()
-                        web.request(comment.get('read_url', comment.url))
-                    def notify(comment=comment, category=category):
-                        if comment.url not in notified_comments:
-                            global should_notify
-                            should_notify = True
-                            category.notify = True
-                            comment.notify = True
-                            notified_comments.add(comment.url)
-
-                    object.__setattr__(comment, 'ignore', ignore)
-                    object.__setattr__(comment, 'mark_read', mark_read)
-                    object.__setattr__(comment, 'notify', notify)
-
-                f(category, comments)
-            else:
-                f(category)
+            f(*args)
+        except Exception as e:
+            show_exception()
+            raise
+    
+    notify_categories = collections.OrderedDict(
+        (kind, category) for (kind, category) in categories.items() if category.get('to_notify')
+    )
+    if notify_categories:
+        notify_f(notify_categories, [comment for comment in comments if comment.get('to_notify')])
     
     for kind, category in list(categories.items()):
-        if category.get('ignored'):
+        if category.get('to_ignore'):
             del categories[kind]
     for comment in list(comments):
-        if comment.get('ignored'):
+        if comment.get('to_ignore'):
             comments.remove(comment)
     categories['comments'].count = len(comments)
-    
-    if should_notify:
-        notify_f()

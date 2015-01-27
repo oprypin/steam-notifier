@@ -25,10 +25,6 @@ import cssselect
 
 
 def parse_commentnotifications(content):
-    [sessionid] = re.findall(b'''g_sessionID *= *["'](.+?)["']''', content)
-    [comment_info] = re.findall(b'''InitCommentNotifications\( *(\[.*?\]),''', content)
-    comment_info = json.loads(comment_info.decode('utf-8'))
-    
     root = lxml.html.fromstring(content)
 
     categories = AttributeDict()
@@ -44,11 +40,15 @@ def parse_commentnotifications(content):
         category.count = int(category.text.split()[0])
         category.url = el.get('href')
     if not categories.offlinemessages.url.startswith('http'):
-        categories.offlinemessages.url = 'https://steamcommunity.com/chat'
+        categories.offlinemessages.url = 'https://steamcommunity.com/chat/'
     if not categories.tradeoffers.get('url'):
         categories.tradeoffers.url = 'http://steamcommunity.com/my/tradeoffers/'
 
     comments = []
+
+    [comment_info] = re.findall(b'''InitCommentNotifications\( *(\[.*?\]),''', content)
+    comment_info = json.loads(comment_info.decode('utf-8'))
+    
     [block] = root.cssselect('#profileBlock')
     for notification, info in zip(block.cssselect('.commentnotification'), comment_info):
         comment = AttributeDict()
@@ -77,6 +77,8 @@ def parse_commentnotifications(content):
             url = 'http://steamcommunity.com/comment/{}/removenotification/{}/{}'
             if m.group(4):
                 url += '?feature2={}'
+
+            [sessionid] = re.findall(b'''g_sessionID *= *["'](.+?)["']''', content)
             comment.read_url = (url.format(*m.groups()), b'sessionid='+sessionid)
         
         if comment.kind == 'discussion':

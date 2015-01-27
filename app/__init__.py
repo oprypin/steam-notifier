@@ -16,16 +16,17 @@
 # along with Steam Notifier.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__version__ = '0.2.2'
+__version__ = '0.2.3'
 
 import sys
 import os
 import collections
+import re
 
 import qt; qt.init()
-from qt.core import QRectF, QSize, QUrl, QTimer
-from qt.gui import QImage, QPixmap, QIcon, QColor, QPainter, QLinearGradient, QFont, QDesktopServices, QCursor
-from qt.widgets import QSystemTrayIcon, QMenu, QMainWindow, QAction, QApplication, QMessageBox
+from qt.core import QRectF, QUrl, QTimer
+from qt.gui import QImage, QPixmap, QIcon, QColor, QPainter, QFont, QDesktopServices, QCursor
+from qt.widgets import QSystemTrayIcon, QMenu, QAction, QApplication, QMessageBox
 from qt.util import qu, add_to
 
 
@@ -49,7 +50,7 @@ def about():
     import lxml
     import cssselect
     
-    QMessageBox.information(None, "About", """
+    QMessageBox.information(None, "About", u"""
         <h1>Steam Notifier</h1>
         <h3>Version {}</h3>
 
@@ -72,20 +73,13 @@ def about():
     ))
 
 def information():
-    QMessageBox.information(None, "Information", """
-        <p>
-        Welcome to <i>Steam Notifier</i>.
-        <p>
-        This program works by simulating a web browser and downloading <a href="http://steamcommunity.com/my/commentnotifications">http://steamcommunity.com/my/commentnotifications</a> every 30 seconds. The page is then parsed to get the information about new comments you got in Steam Community as well as other events.
-        <p>
-        In order to do this, <i>Steam Notifier</i> will need you to login to Steam Community in the browser window that will be shown to you. Of course, entering your password in some suspicious looking window can be a risk. But this program does not store your login data in any way. And you don't have to just believe these words. The program's source code is available in its entirety.
-        <p>
-        The initial setup ends successfully when you reach your comment notifications page, and if everything goes well, you should be redirected there automatically after you log in. You may need to log in again from time to time if the session expires.
-        <p>
-        Afterwards, <i>Steam Notifier</i> will consist only of the system tray (notification area) icon with the number of new events (if any) on it, very similarly to the one you get inside Steam's main window. Right-clicking it will give you a menu with some self-explanatory options (including <i>Quit</i>), and also individual event groups. Clicking on the events in the menu will open the corresponding part of Steam Community website in your default browser. Double clicking the icon will select the first available event from that menu and send you to it.
-        <p>
-        Make sure to check out <i>settings/config.py</i> to configure filtering, notification popups and much more.
-    """)
+    with open('README.md') as f:
+        s = f.read()
+    s = s.split('\n#')[0]
+    s = re.sub(r'<(.+?)>', r'<a href="\1">\1</a>', s)
+    s = re.sub(r'\*(.+?)\*', r'<i>\1</i>', s)
+    s = '<p>'.join(p for p in s.split('\n\n')[1:] if "![Screenshot]" not in p)
+    QMessageBox.information(None, "Information", "<p>Welcome to <i>Steam Notifier</i>.<p>"+s)
 
 
 def logout():
@@ -115,17 +109,6 @@ options_menu = add_to(QMenu("&Options"),
 tray_menu = add_to(QMenu(), options_menu)
 
 
-def activated(reason=None):
-    if reason == QSystemTrayIcon.DoubleClick:
-        activate()
-    elif reason == None:
-    #elif reason in [QSystemTrayIcon.Context, QSystemTrayIcon.Trigger]:
-        tray_menu.popup(QCursor.pos())
-
-qu(tray_icon, context_menu=options_menu, icon=QIcon(empty_images[12]), activated=activated, message_clicked=activated)
-
-tray_icon.show()
-
 
 
 categories = comments = None
@@ -133,45 +116,48 @@ categories = comments = None
 icon_font = QFont('Helvetica [Arial]', weight=QFont.Bold)
 
 def generate_icon(size, n):
+    w, h = size.width(), size.height()
+
     img = QImage(size, QImage.Format_ARGB32_Premultiplied)
     img.fill(qt.transparent)
     
-    w, h = size.width(), size.height()
-    
-    (_, empty) = max((k, v) for k, v in empty_images.items() if k <= min(w, h))
-    
     g = QPainter(img)
+    
+    d = 0 if qt.major <= 4 else 0.5
     
     if n:
         g.fillRect(0, 0, w, h, QColor(92, 126, 16))
-    
-    #g.setPen(QColor(92, 126, 16))
-    d = 0 if qt.major <= 4 else 0.5
-    #g.drawRoundedRect(QRectF(d, d, w-1, h-1), 3, 3)
-    
-    if n:
-        sz = h*0.88 if len(str(n)) == 1 else w*0.7
+
+        sz = h*0.88 if n < 10 else w*0.7
         icon_font.setPixelSize(sz)
         
         g.setFont(icon_font)
         g.setPen(qt.white)
         g.drawText(QRectF(1, 1, w-1, h-1+sz*0.0025-d), qt.AlignCenter|qt.AlignVCenter, str(n))
     else:
+        (_, empty) = max((k, v) for k, v in empty_images.items() if k <= min(w, h))
+
         g.drawPixmap(int(w/2-empty.width()/2), int(h/2-empty.height()/2), empty)
     
     del g
     
     return QIcon(QPixmap.fromImage(img))
 
+last_n = None
+
 def update_icon(categories, comments):
+    global last_n
     n = sum(category.count for category in categories.values())
-    icon = generate_icon(tray_icon.geometry().size(), n)
-    tray_icon.setIcon(icon)
+    if n != last_n:
+        icon = generate_icon(tray_icon.geometry().size(), n)
+        tray_icon.setIcon(icon)
+        last_n = n
 
 
 
 def category_click(category):
     open_url(category.url)
+    QTimer.singleShot(8000, web.update)
 
 def comment_click(comment):
     open_url(comment.url)
@@ -191,7 +177,6 @@ def group_comments(comments):
     return groups
 
 
-
 def update_menu(categories, comments):
     tray_menu.clear()
     
@@ -199,15 +184,18 @@ def update_menu(categories, comments):
         if not category.count:
             continue
         add_to(tray_menu, make_action(category.text,
-          triggered=lambda category=category: category_click(category)))
+            triggered=lambda category=category: category_click(category))
+        )
         if kind == 'comments':
             for group, gr_comments in group_comments(comments).items():
                 if group:
                     add_to(tray_menu, make_action('    {}:'.format(group),
-                      triggered=lambda category=category: category_click(category)))
+                        triggered=lambda category=category: category_click(category))
+                    )
                 for comment in gr_comments:
                     add_to(tray_menu, make_action(u'        \u2022 {}'.format(comment.text),
-                      triggered=lambda comment=comment: comment_click(comment), tool_tip=comment.tooltip))
+                        triggered=lambda comment=comment: comment_click(comment), tool_tip=comment.tooltip)
+                    )
             add_to(tray_menu, None)
     
     if not tray_menu.isEmpty():
@@ -217,11 +205,13 @@ def update_menu(categories, comments):
     else:
         qu(tray_icon, context_menu=options_menu)
 
-def notify():
+def notify(categories, comments):
     msg = []
+    total_categories = 0
     for kind, category in categories.items():
-        if not category.count or not category.get('notify'):
+        if not category.count:
             continue
+        total_categories += 1
         msg.append(category.text)
         if kind == 'comments':
             for group, gr_comments in group_comments(comments).items():
@@ -229,7 +219,13 @@ def notify():
                     msg.append('    {}:'.format(group))
                 for comment in gr_comments:
                     msg.append(u'        \u2022 {}'.format(comment.text))
-    tray_icon.showMessage("Steam Notifier", '\n'.join(msg), QSystemTrayIcon.NoIcon, round(api.config.notification_timeout*1000))
+    if total_categories == 1:
+        title, msg = msg[0], msg[1:]
+    else:
+        title = "Steam Notifier"
+    tray_icon.showMessage(title, '\n'.join(msg), QSystemTrayIcon.NoIcon,
+        round(api.config.notification_timeout*1000)
+    )
 
 def open_url(url, browser=api.config.open_urls_in):
     if browser in [None, 'default']:
@@ -245,13 +241,6 @@ def open_url(url, browser=api.config.open_urls_in):
             browser.open_new_tab(url)
 
 
-def activate():
-    for category in categories.values():
-        if category.count:
-            open_url(category.url)
-            return
-    open_url('http://steamcommunity.com/my/commentnotifications')
-
 def update():
     update_icon(categories, comments)
     update_menu(categories, comments)
@@ -259,11 +248,31 @@ def update():
 def process_data(data):
     global categories, comments
     categories, comments = data
-    for c in comments:
-        c.text = '{} ({})'.format(c.title, c.newposts)
-        c.tooltip = '{}\n({})'.format(c.description, c.date)
-    api.go(categories, comments, notify)
+    for comment in comments:
+        title = comment.title
+        if len(title) > 50:
+            title = title[:50].strip()+'...'
+        comment.text = (u'{} ({})' if comment.newposts > 1 else u'{}').format(title, comment.newposts)
+        comment.tooltip = u'{}\n({})'.format(comment.description, comment.date)
+    api.transform(categories, comments, notify)
     update()
+
+
+def activate(reason=None):
+    if reason == QSystemTrayIcon.DoubleClick or reason is None:
+        if len(comments) == 1:
+            comment_click(comments[0])
+        for category in categories.values():
+            if category.count:
+                category_click(category)
+                return
+        open_url('http://steamcommunity.com/my/commentnotifications')
+
+qu(tray_icon, context_menu=options_menu, icon=QIcon(empty_images[20]), activated=activate, message_clicked=activate)
+
+tray_icon.show()
+
+
 
 try:
     with open('settings/user.txt') as f:
