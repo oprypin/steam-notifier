@@ -27,7 +27,7 @@ try:
     script_name = __FILE__
 except NameError:
     script_name = sys.argv[0]
-os.chdir(os.path.dirname(os.path.realpath(os.path.abspath(script_name))))
+os.chdir(os.path.dirname(os.path.abspath(script_name)))
 
 
 sys.path.insert(0, 'universal-qt')

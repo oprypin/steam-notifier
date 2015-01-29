@@ -16,7 +16,7 @@
 # along with Steam Notifier.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__version__ = '0.2.4'
+__version__ = '0.2.5'
 
 import sys
 import os
@@ -263,6 +263,7 @@ def activate(reason=None):
     if reason == QSystemTrayIcon.DoubleClick or reason is None:
         if len(comments) == 1:
             comment_click(comments[0])
+            return
         for category in categories.values():
             if category.count:
                 category_click(category)

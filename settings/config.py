@@ -28,23 +28,23 @@ def comments(info, comments):
         if comment.kind == 'discussion':
             # avoid separation of new discussions and followups (no "A new discussion in...")
             comment.group = comment.forum
-            # but append a star to new discussions
-            if comment.new:
-                comment.text = comment.text+" *"
             
-            # use regular expressions to find unwanted discussions (mostly trading)
-            # https://docs.python.org/3/library/re.html
-            matches = re.findall(r'''
-                \b(coupons?|trading|trade|cards?|discount|offers?|gems|keys?)\b   # whole words; optional s
-              | \[H\] | \[W\] | \b(H|W)\b   # [H] or [W]
-              | \b([1-9][05]|33|66) ?%   # coupons
-            ''', comment.title, re.IGNORECASE|re.VERBOSE)
-            if len(matches) >= 2:    # if at least 2 matches,
-                comment.mark_read()  # ignore and mark as read
-                continue
-            elif len(matches) == 1:  # if just 1 match,
-                comment.ignore()     # don't show it in Steam Notifier, but leave it
-                continue
+            if comment.new:
+                comment.text = comment.text+" *" # but append a star to new discussions
+            
+                # use regular expressions to find unwanted discussions (mostly trading)
+                # https://docs.python.org/3/library/re.html
+                matches = re.findall(r'''
+                    \b(coupons?|trading|trade|cards?|discount|offers?|gems|keys?)\b   # whole words; optional s
+                | \[H\] | \[W\] | \b(H|W)\b   # [H] or [W]
+                | \b([1-9][05]|33|66) ?%   # coupons
+                ''', comment.title, re.IGNORECASE|re.VERBOSE)
+                if len(matches) >= 2:    # if at least 2 matches,
+                    comment.mark_read()  # ignore and mark as read
+                    continue
+                elif len(matches) == 1:  # if just 1 match,
+                    comment.ignore()     # don't show it in Steam Notifier, but leave it
+                    continue
 
         # notify about your own items or replies on others' profiles, statuses, new games
         if comment.owner or comment.kind in ['profile', 'status', 'newgame']:
