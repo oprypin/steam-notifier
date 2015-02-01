@@ -46,7 +46,7 @@ Make sure to check out [settings/config.py](settings/config.py) to configure fil
 
   Download the latest source [release](https://github.com/BlaXpirit/steam-notifier/tags) and extract the folder.
 
-  Install the libraries: (`python-pyside` or `python-pyqt4`), `libqtwebkit4`/`qt4-webkit`/etc, `python-lxml`, `python-cssselect`.
+  Install the libraries: (`python-pyside` or `python-pyqt4`), `python-lxml`, `python-cssselect`. `libqtwebkit4`/`qt4-webkit`/etc and `sni-qt` may be needed.
   
 - **Mac**
   

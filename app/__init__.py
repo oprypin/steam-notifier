@@ -16,7 +16,7 @@
 # along with Steam Notifier.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__version__ = '0.2.5'
+__version__ = '0.2.6'
 
 import sys
 import os
@@ -24,7 +24,7 @@ import collections
 import re
 
 import qt; qt.init()
-from qt.core import QRectF, QUrl, QTimer
+from qt.core import QRectF, QUrl, QTimer, QSize
 from qt.gui import QImage, QPixmap, QIcon, QColor, QPainter, QFont, QDesktopServices, QCursor
 from qt.widgets import QSystemTrayIcon, QMenu, QAction, QApplication, QMessageBox
 from qt.util import qu, add_to
@@ -150,7 +150,10 @@ def update_icon(categories, comments):
     global last_n
     n = sum(category.count for category in categories.values())
     if n != last_n:
-        icon = generate_icon(tray_icon.geometry().size(), n)
+        size = tray_icon.geometry().size()
+        if not (size.width() and size.height()):
+            size = QSize(22, 22)
+        icon = generate_icon(size, n)
         tray_icon.setIcon(icon)
         last_n = n
 

@@ -83,7 +83,7 @@ def transform(categories, comments, notify_f):
 
             args = (category, comments)
         else:
-            args = (category)
+            args = (category,)
         
         try:
             f = getattr(config, kind)
