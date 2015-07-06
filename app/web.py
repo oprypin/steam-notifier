@@ -30,16 +30,20 @@ from .parse import parse_commentnotifications
 cookie_jar = PersistentCookieJar('settings/cookies.txt')
 nam = qu(QNetworkAccessManager, cookie_jar=cookie_jar)
 
+running = False
+
 def found_login_url(url):
     if not url.path().startswith('/login'):
         return False
     
-    global page, view
+    stop()
+    
+    global page, view, running
     page = qu(QWebPage, network_access_manager=nam)
 
     def load_progress(progress):
         qu(view, window_title=page.mainFrame().url().toString())
-
+    
     def load_finished(ok):
         global page, view
         if found_commentnotifications_url(page.mainFrame().url()):
@@ -49,16 +53,19 @@ def found_login_url(url):
 
     view = qu(QWebView, page=page, window_title="Steam Notifier")
     page.mainFrame().load(url)
-    view.show()
+    if not running:
+        view.show()
+    running = False
     return True
 
 def found_commentnotifications_url(url):
     if url and url.path().rstrip('/').endswith('/commentnotifications') and not url.path().startswith('/my'):
-        global user_url
+        global user_url, running
         user_url = url.toString().split('?')[0]
         with open('settings/user.txt', 'w') as f:
             f.write(user_url)
         start()
+        running = True
         return True
     return False
 
@@ -119,13 +126,16 @@ request_timer = qu(QTimer, interval=1000*2, timeout=_next_request)
 def update(reset_timer=True):
     request(user_url+'?l=english', finished)
 
-    if reset_timer:
+    if reset_timer and timer.isActive():
         timer.start()
 
 timer = qu(QTimer, interval=1000*30, timeout=lambda: update(False))
 
 def start():
     update()
+    timer.start()
+def stop():
+    timer.stop()
 
 def run(result_callback):
     global _callback, user_url

@@ -16,7 +16,7 @@
 # along with Steam Notifier.  If not, see <http://www.gnu.org/licenses/>.
 
 
-__version__ = '0.2.6'
+__version__ = '0.2.7'
 
 import sys
 import os
