@@ -1,5 +1,6 @@
 # Steam Notifier
 
+**Warning**: This application is currently broken (because of some changes in Steam) and unmaintained. Additionally, QtWebKit is obsolete.
 
 ## Introduction
 
